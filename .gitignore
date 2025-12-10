@@ -1,0 +1,27 @@
+# Credentials - NEVER commit
+.env
+*.env
+secrets/
+credentials.json
+
+# UV / Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+dist/
+*.egg-info/
+
+# Data (regeneratable from Oracle)
+data/chroma_db/
+data/metadata.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

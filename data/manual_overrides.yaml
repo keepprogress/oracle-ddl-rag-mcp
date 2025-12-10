@@ -1,0 +1,18 @@
+# Manual enum value definitions for columns without CHECK constraints
+# Format:
+# TABLE_NAME:
+#   COLUMN_NAME:
+#     - code: "VALUE"
+#       meaning: "Description of what this value means"
+
+# Example:
+# ORDERS:
+#   STATUS:
+#     - code: "0"
+#       meaning: Draft - order not yet submitted
+#     - code: "1"
+#       meaning: Pending - awaiting approval
+#     - code: "2"
+#       meaning: Approved - ready for processing
+#     - code: "9"
+#       meaning: Cancelled - order was cancelled
