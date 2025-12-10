@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Offline schema ingestion script.
+離線結構注入腳本。
 
-This script extracts DDL metadata from an Oracle database and populates
-the ChromaDB vector store and SQLite cache for the MCP server.
+此腳本從 Oracle 資料庫提取 DDL 中繼資料，並填充 MCP 伺服器的
+ChromaDB 向量儲存和 SQLite 快取。
 
-Credentials are prompted at runtime and NEVER stored or exposed to AI assistants.
+憑證在執行時提示，永遠不會儲存或暴露給 AI 助手。
 
-Usage:
+使用方式：
     uv run scripts/ingest_schema.py --dsn localhost:1521/ORCL --user scott
 """
 
@@ -16,7 +16,7 @@ import getpass
 import sys
 from pathlib import Path
 
-# Add src to path for imports
+# 將 src 加入路徑以供匯入
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import oracledb
@@ -29,89 +29,89 @@ from oracle_ddl_rag.config import DATA_DIR
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Ingest Oracle schema metadata for DDL RAG MCP Server"
+        description="為 DDL RAG MCP 伺服器注入 Oracle 結構中繼資料"
     )
     parser.add_argument(
         "--dsn",
         required=True,
-        help="Oracle DSN (e.g., localhost:1521/ORCL or //host:port/service)",
+        help="Oracle DSN（例如：localhost:1521/ORCL 或 //host:port/service）",
     )
     parser.add_argument(
         "--user",
         required=True,
-        help="Oracle username",
+        help="Oracle 使用者名稱",
     )
     parser.add_argument(
         "--clear",
         action="store_true",
-        help="Clear existing data before ingestion",
+        help="注入前清除現有資料",
     )
     parser.add_argument(
         "--skip-embeddings",
         action="store_true",
-        help="Skip embedding generation (useful for testing)",
+        help="跳過嵌入產生（用於測試）",
     )
     args = parser.parse_args()
 
-    # Prompt for password (secure input)
+    # 提示輸入密碼（安全輸入）
     print("=" * 60)
-    print("Oracle DDL RAG - Schema Ingestion")
+    print("Oracle DDL RAG - 結構注入")
     print("=" * 60)
-    print(f"\nConnecting to: {args.dsn}")
-    print(f"Username: {args.user}")
-    print("\nNote: Password is not stored and not visible to AI assistants.\n")
+    print(f"\n連線至：{args.dsn}")
+    print(f"使用者名稱：{args.user}")
+    print("\n注意：密碼不會儲存，AI 助手看不到。\n")
 
-    password = getpass.getpass("Oracle Password: ")
+    password = getpass.getpass("Oracle 密碼：")
 
-    # Connect to Oracle
-    print("\nConnecting to Oracle...")
+    # 連線至 Oracle
+    print("\n連線至 Oracle...")
     try:
         connection = oracledb.connect(
             user=args.user,
             password=password,
             dsn=args.dsn,
         )
-        print("Connected successfully!")
+        print("連線成功！")
     except oracledb.Error as e:
-        print(f"Error connecting to Oracle: {e}")
+        print(f"連線 Oracle 時發生錯誤：{e}")
         sys.exit(1)
 
-    # Initialize storage
-    print("\nInitializing storage...")
+    # 初始化儲存
+    print("\n初始化儲存...")
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     chroma = ChromaStore()
     cache = SQLiteCache()
 
     if args.clear:
-        print("Clearing existing data...")
+        print("清除現有資料...")
         chroma.clear_all()
         cache.clear_all()
 
-    # Initialize embedding service
+    # 初始化嵌入服務
     if not args.skip_embeddings:
-        print("\nInitializing embedding service...")
+        print("\n初始化嵌入服務...")
         embedding_service = get_embedding_service()
-        print(f"Using embedding model: {embedding_service.model_name}")
-        print(f"Embedding dimensions: {embedding_service.dimensions}")
+        print(f"使用嵌入模型：{embedding_service.model_name}")
+        print(f"嵌入維度：{embedding_service.dimensions}")
 
-    # Extract tables
+    # 提取資料表
     print("\n" + "=" * 60)
-    print("Extracting Tables...")
+    print("提取資料表...")
     print("=" * 60)
 
     ddl_extractor = DDLExtractor(connection)
     tables = ddl_extractor.get_all_tables()
-    print(f"Found {len(tables)} tables")
+    print(f"找到 {len(tables)} 個資料表")
 
-    # Process tables
+    # 處理資料表
     for i, table in enumerate(tables, 1):
         print(f"  [{i}/{len(tables)}] {table.name}", end="")
 
-        # Store in SQLite cache
+        # 儲存至 SQLite 快取
         cache.upsert_table(table.to_dict())
 
-        # Generate and store embeddings
+        # 產生並儲存嵌入
         if not args.skip_embeddings:
             doc = table.to_document()
             embedding = embedding_service.embed_single(doc)
@@ -128,9 +128,9 @@ def main():
                 embedding=embedding,
             )
 
-            # Also store column embeddings
+            # 也儲存欄位嵌入
             for col in table.columns:
-                col_doc = f"Column {col.name} in table {table.name}: {col.data_type}"
+                col_doc = f"資料表 {table.name} 中的欄位 {col.name}：{col.data_type}"
                 if col.comment:
                     col_doc += f" - {col.comment}"
 
@@ -147,24 +147,24 @@ def main():
                     embedding=col_embedding,
                 )
 
-        print(" [OK]")
+        print(" [完成]")
 
-    # Extract relationships
+    # 提取關聯
     print("\n" + "=" * 60)
-    print("Extracting Relationships...")
+    print("提取關聯...")
     print("=" * 60)
 
     rel_extractor = RelationshipExtractor(connection)
     relationships = rel_extractor.get_all_relationships()
-    print(f"Found {len(relationships)} foreign key relationships")
+    print(f"找到 {len(relationships)} 個外鍵關聯")
 
     for i, rel in enumerate(relationships, 1):
         print(f"  [{i}/{len(relationships)}] {rel.child_table} -> {rel.parent_table}", end="")
 
-        # Store in SQLite cache
+        # 儲存至 SQLite 快取
         cache.upsert_relationship(rel.to_dict())
 
-        # Generate and store embeddings
+        # 產生並儲存嵌入
         if not args.skip_embeddings:
             doc = rel.to_document()
             embedding = embedding_service.embed_single(doc)
@@ -180,53 +180,53 @@ def main():
                 embedding=embedding,
             )
 
-        print(" [OK]")
+        print(" [完成]")
 
-    # Extract enum values
+    # 提取列舉值
     print("\n" + "=" * 60)
-    print("Extracting Enum Values...")
+    print("提取列舉值...")
     print("=" * 60)
 
     enum_extractor = EnumExtractor(connection)
     enums = enum_extractor.extract_all()
-    print(f"Found {len(enums)} enum definitions")
+    print(f"找到 {len(enums)} 個列舉定義")
 
     for i, enum in enumerate(enums, 1):
         print(f"  [{i}/{len(enums)}] {enum.table_name}.{enum.column_name}", end="")
-        print(f" ({len(enum.values)} values, source: {enum.source})", end="")
+        print(f" ({len(enum.values)} 個值，來源：{enum.source})", end="")
 
-        # Store in SQLite cache
+        # 儲存至 SQLite 快取
         cache.upsert_enum(enum.to_dict())
 
-        print(" [OK]")
+        print(" [完成]")
 
-    # Update sync timestamp
+    # 更新同步時間戳記
     cache.update_last_sync_time()
 
-    # Close connection
+    # 關閉連線
     connection.close()
 
-    # Print summary
+    # 列印摘要
     print("\n" + "=" * 60)
-    print("Ingestion Complete!")
+    print("注入完成！")
     print("=" * 60)
 
     stats = cache.get_stats()
     chroma_stats = chroma.get_stats() if not args.skip_embeddings else {}
 
-    print(f"\nSQLite Cache:")
-    print(f"  - Tables: {stats['tables']}")
-    print(f"  - Enums: {stats['enums']}")
-    print(f"  - Relationships: {stats['relationships']}")
+    print(f"\nSQLite 快取：")
+    print(f"  - 資料表：{stats['tables']}")
+    print(f"  - 列舉：{stats['enums']}")
+    print(f"  - 關聯：{stats['relationships']}")
 
     if chroma_stats:
-        print(f"\nChromaDB Vectors:")
-        print(f"  - Table embeddings: {chroma_stats.get('tables', 0)}")
-        print(f"  - Column embeddings: {chroma_stats.get('columns', 0)}")
-        print(f"  - Relationship embeddings: {chroma_stats.get('relationships', 0)}")
+        print(f"\nChromaDB 向量：")
+        print(f"  - 資料表嵌入：{chroma_stats.get('tables', 0)}")
+        print(f"  - 欄位嵌入：{chroma_stats.get('columns', 0)}")
+        print(f"  - 關聯嵌入：{chroma_stats.get('relationships', 0)}")
 
-    print(f"\nData stored in: {DATA_DIR}")
-    print("\nYou can now start the MCP server with: uv run oracle-ddl-mcp")
+    print(f"\n資料儲存於：{DATA_DIR}")
+    print("\n您現在可以使用以下指令啟動 MCP 伺服器：uv run oracle-ddl-mcp")
 
 
 if __name__ == "__main__":

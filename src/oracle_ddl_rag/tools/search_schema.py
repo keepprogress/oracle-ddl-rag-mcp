@@ -1,4 +1,4 @@
-"""Search database schemas by natural language query."""
+"""依自然語言查詢搜尋資料庫結構。"""
 
 from ..storage import ChromaStore
 from ..embeddings import get_embedding_service
@@ -9,22 +9,22 @@ async def search_db_schema(
     query: str,
     limit: int = DEFAULT_SEARCH_LIMIT,
 ) -> dict:
-    """Search database schemas by business concept or table name.
+    """依業務概念或資料表名稱搜尋資料庫結構。
 
-    This tool should be used BEFORE writing any SQL to find relevant tables.
+    在撰寫任何 SQL 之前應使用此工具來尋找相關資料表。
 
-    Args:
-        query: Natural language description (e.g., "customer orders", "user authentication").
-        limit: Maximum number of results (default: 10).
+    參數：
+        query: 自然語言描述（例如：「客戶訂單」、「使用者驗證」）。
+        limit: 最大結果數（預設：10）。
 
-    Returns:
-        Dictionary with matching tables and their relevance scores.
+    回傳：
+        包含符合資料表及相關分數的字典。
     """
-    # Get embedding for the query
+    # 取得查詢的嵌入向量
     embedding_service = get_embedding_service()
     query_embedding = embedding_service.embed_single(query)
 
-    # Search in ChromaDB
+    # 在 ChromaDB 中搜尋
     store = ChromaStore()
     results = store.search_tables(query_embedding, limit=limit)
 
@@ -33,10 +33,10 @@ async def search_db_schema(
             "success": True,
             "query": query,
             "results": [],
-            "message": f"No tables found matching '{query}'. Try different keywords.",
+            "message": f"找不到符合「{query}」的資料表。請嘗試其他關鍵字。",
         }
 
-    # Format results
+    # 格式化結果
     formatted_results = []
     for r in results:
         metadata = r.get("metadata", {})

@@ -1,4 +1,4 @@
-"""ChromaDB vector store for semantic search over database schemas."""
+"""用於資料庫結構語意搜尋的 ChromaDB 向量儲存。"""
 
 from typing import Optional
 import chromadb
@@ -14,13 +14,13 @@ from ..config import (
 
 
 class ChromaStore:
-    """Vector database interface for schema semantic search."""
+    """用於結構語意搜尋的向量資料庫介面。"""
 
     def __init__(self, path: Optional[str] = None):
-        """Initialize ChromaDB with persistent storage.
+        """以持久化儲存初始化 ChromaDB。
 
-        Args:
-            path: Override path for ChromaDB storage. Uses default if None.
+        參數：
+            path: ChromaDB 儲存的覆寫路徑。若為 None 則使用預設值。
         """
         db_path = path or str(CHROMA_PATH)
         CHROMA_PATH.mkdir(parents=True, exist_ok=True)
@@ -33,14 +33,14 @@ class ChromaStore:
             )
         )
 
-        # Lazy-loaded collections
+        # 延遲載入的集合
         self._tables: Optional[chromadb.Collection] = None
         self._columns: Optional[chromadb.Collection] = None
         self._relationships: Optional[chromadb.Collection] = None
 
     @property
     def tables(self) -> chromadb.Collection:
-        """Get or create the tables collection."""
+        """取得或建立資料表集合。"""
         if self._tables is None:
             self._tables = self._client.get_or_create_collection(
                 name=COLLECTION_TABLES,
@@ -50,7 +50,7 @@ class ChromaStore:
 
     @property
     def columns(self) -> chromadb.Collection:
-        """Get or create the columns collection."""
+        """取得或建立欄位集合。"""
         if self._columns is None:
             self._columns = self._client.get_or_create_collection(
                 name=COLLECTION_COLUMNS,
@@ -60,7 +60,7 @@ class ChromaStore:
 
     @property
     def relationships(self) -> chromadb.Collection:
-        """Get or create the relationships collection."""
+        """取得或建立關聯集合。"""
         if self._relationships is None:
             self._relationships = self._client.get_or_create_collection(
                 name=COLLECTION_RELATIONSHIPS,
@@ -73,14 +73,14 @@ class ChromaStore:
         query_embedding: list[float],
         limit: int = 10,
     ) -> list[dict]:
-        """Search tables by semantic similarity.
+        """依語意相似度搜尋資料表。
 
-        Args:
-            query_embedding: Vector embedding of the search query.
-            limit: Maximum number of results.
+        參數：
+            query_embedding: 搜尋查詢的向量嵌入。
+            limit: 最大結果數。
 
-        Returns:
-            List of matching tables with metadata and similarity scores.
+        回傳：
+            包含中繼資料和相似度分數的符合資料表列表。
         """
         limit = min(limit, MAX_SEARCH_LIMIT)
         results = self.tables.query(
@@ -96,15 +96,15 @@ class ChromaStore:
         limit: int = 20,
         data_type: Optional[str] = None,
     ) -> list[dict]:
-        """Search columns by semantic similarity.
+        """依語意相似度搜尋欄位。
 
-        Args:
-            query_embedding: Vector embedding of the search query.
-            limit: Maximum number of results.
-            data_type: Optional filter by Oracle data type.
+        參數：
+            query_embedding: 搜尋查詢的向量嵌入。
+            limit: 最大結果數。
+            data_type: 選用，依 Oracle 資料類型篩選。
 
-        Returns:
-            List of matching columns with table names and metadata.
+        回傳：
+            包含資料表名稱和中繼資料的符合欄位列表。
         """
         limit = min(limit, MAX_SEARCH_LIMIT)
         where_filter = {"data_type": data_type.upper()} if data_type else None
@@ -122,14 +122,14 @@ class ChromaStore:
         query_embedding: list[float],
         limit: int = 10,
     ) -> list[dict]:
-        """Search relationships by semantic similarity.
+        """依語意相似度搜尋關聯。
 
-        Args:
-            query_embedding: Vector embedding of the search query.
-            limit: Maximum number of results.
+        參數：
+            query_embedding: 搜尋查詢的向量嵌入。
+            limit: 最大結果數。
 
-        Returns:
-            List of matching FK relationships.
+        回傳：
+            符合的外鍵關聯列表。
         """
         limit = min(limit, MAX_SEARCH_LIMIT)
         results = self.relationships.query(
@@ -146,13 +146,13 @@ class ChromaStore:
         metadata: dict,
         embedding: list[float],
     ) -> None:
-        """Insert or update a table document.
+        """插入或更新資料表文件。
 
-        Args:
-            table_id: Unique identifier (e.g., "ORDERS").
-            document: Natural language description for embedding.
-            metadata: Structured metadata (column_count, has_comment, etc.).
-            embedding: Pre-computed vector embedding.
+        參數：
+            table_id: 唯一識別碼（例如：「ORDERS」）。
+            document: 用於嵌入的自然語言描述。
+            metadata: 結構化中繼資料（column_count、has_comment 等）。
+            embedding: 預先計算的向量嵌入。
         """
         self.tables.upsert(
             ids=[table_id],
@@ -168,13 +168,13 @@ class ChromaStore:
         metadata: dict,
         embedding: list[float],
     ) -> None:
-        """Insert or update a column document.
+        """插入或更新欄位文件。
 
-        Args:
-            column_id: Unique identifier (e.g., "ORDERS.STATUS").
-            document: Natural language description for embedding.
-            metadata: Structured metadata (table_name, data_type, etc.).
-            embedding: Pre-computed vector embedding.
+        參數：
+            column_id: 唯一識別碼（例如：「ORDERS.STATUS」）。
+            document: 用於嵌入的自然語言描述。
+            metadata: 結構化中繼資料（table_name、data_type 等）。
+            embedding: 預先計算的向量嵌入。
         """
         self.columns.upsert(
             ids=[column_id],
@@ -190,13 +190,13 @@ class ChromaStore:
         metadata: dict,
         embedding: list[float],
     ) -> None:
-        """Insert or update a relationship document.
+        """插入或更新關聯文件。
 
-        Args:
-            rel_id: Unique identifier (e.g., "ORDER_ITEMS->ORDERS").
-            document: Natural language description for embedding.
-            metadata: Structured metadata (parent_table, child_table, etc.).
-            embedding: Pre-computed vector embedding.
+        參數：
+            rel_id: 唯一識別碼（例如：「ORDER_ITEMS->ORDERS」）。
+            document: 用於嵌入的自然語言描述。
+            metadata: 結構化中繼資料（parent_table、child_table 等）。
+            embedding: 預先計算的向量嵌入。
         """
         self.relationships.upsert(
             ids=[rel_id],
@@ -206,13 +206,13 @@ class ChromaStore:
         )
 
     def get_table(self, table_id: str) -> Optional[dict]:
-        """Get a specific table by ID.
+        """依 ID 取得特定資料表。
 
-        Args:
-            table_id: Table name (case-insensitive, will be uppercased).
+        參數：
+            table_id: 資料表名稱（不分大小寫，將轉為大寫）。
 
-        Returns:
-            Table document with metadata, or None if not found.
+        回傳：
+            包含中繼資料的資料表文件，若找不到則為 None。
         """
         table_id = table_id.upper()
         results = self.tables.get(
@@ -228,7 +228,7 @@ class ChromaStore:
         return None
 
     def clear_all(self) -> None:
-        """Delete all collections and reset the store."""
+        """刪除所有集合並重置儲存。"""
         for name in [COLLECTION_TABLES, COLLECTION_COLUMNS, COLLECTION_RELATIONSHIPS]:
             try:
                 self._client.delete_collection(name)
@@ -239,10 +239,10 @@ class ChromaStore:
         self._relationships = None
 
     def get_stats(self) -> dict:
-        """Get statistics about stored data.
+        """取得儲存資料的統計資訊。
 
-        Returns:
-            Dictionary with counts for each collection.
+        回傳：
+            包含各集合計數的字典。
         """
         return {
             "tables": self.tables.count(),
@@ -252,7 +252,7 @@ class ChromaStore:
 
     @staticmethod
     def _format_results(results: dict) -> list[dict]:
-        """Format ChromaDB query results into a list of dicts."""
+        """將 ChromaDB 查詢結果格式化為字典列表。"""
         if not results["ids"] or not results["ids"][0]:
             return []
 
@@ -264,7 +264,7 @@ class ChromaStore:
                 "metadata": results["metadatas"][0][i] if results.get("metadatas") else {},
             }
             if results.get("distances"):
-                # Convert distance to similarity score (1 - cosine distance)
+                # 將距離轉換為相似度分數（1 - 餘弦距離）
                 item["similarity"] = 1 - results["distances"][0][i]
             formatted.append(item)
 

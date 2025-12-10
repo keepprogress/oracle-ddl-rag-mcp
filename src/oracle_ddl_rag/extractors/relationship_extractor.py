@@ -1,4 +1,4 @@
-"""Oracle foreign key relationship extractor."""
+"""Oracle 外鍵關聯提取器。"""
 
 from dataclasses import dataclass
 import oracledb
@@ -6,7 +6,7 @@ import oracledb
 
 @dataclass
 class ForeignKeyInfo:
-    """Foreign key relationship metadata."""
+    """外鍵關聯中繼資料。"""
     constraint_name: str
     child_table: str
     child_columns: list[str]
@@ -23,7 +23,7 @@ class ForeignKeyInfo:
         }
 
     def to_document(self) -> str:
-        """Create natural language description for embedding."""
+        """建立用於嵌入的自然語言描述。"""
         child_cols = ", ".join(self.child_columns)
         parent_cols = ", ".join(self.parent_columns)
 
@@ -32,17 +32,17 @@ class ForeignKeyInfo:
             for cc, pc in zip(self.child_columns, self.parent_columns)
         )
 
-        return f"""Foreign Key: {self.child_table} references {self.parent_table}
-Constraint: {self.constraint_name}
-Child columns: {self.child_table}.{child_cols}
-Parent columns: {self.parent_table}.{parent_cols}
-JOIN condition: {join_condition}"""
+        return f"""外鍵：{self.child_table} 參照 {self.parent_table}
+約束：{self.constraint_name}
+子欄位：{self.child_table}.{child_cols}
+父欄位：{self.parent_table}.{parent_cols}
+JOIN 條件：{join_condition}"""
 
 
 class RelationshipExtractor:
-    """Extract foreign key relationships from Oracle database."""
+    """從 Oracle 資料庫提取外鍵關聯。"""
 
-    # Get all FK relationships with column mappings
+    # 取得所有外鍵關聯及欄位對應
     FK_QUERY = """
         SELECT
             c.constraint_name,
@@ -54,7 +54,7 @@ class RelationshipExtractor:
         ORDER BY c.table_name, rc.table_name
     """
 
-    # Get columns for a specific FK constraint
+    # 取得特定外鍵約束的欄位
     FK_COLUMNS_QUERY = """
         SELECT
             cc.column_name as child_column,
@@ -70,18 +70,18 @@ class RelationshipExtractor:
     """
 
     def __init__(self, connection: oracledb.Connection):
-        """Initialize with an Oracle connection.
+        """以 Oracle 連線初始化。
 
-        Args:
-            connection: Active Oracle database connection.
+        參數：
+            connection: 活動的 Oracle 資料庫連線。
         """
         self._conn = connection
 
     def get_all_relationships(self) -> list[ForeignKeyInfo]:
-        """Extract all foreign key relationships.
+        """提取所有外鍵關聯。
 
-        Returns:
-            List of ForeignKeyInfo objects.
+        回傳：
+            ForeignKeyInfo 物件列表。
         """
         cursor = self._conn.cursor()
         cursor.execute(self.FK_QUERY)
@@ -102,13 +102,13 @@ class RelationshipExtractor:
         return relationships
 
     def get_table_relationships(self, table_name: str) -> list[ForeignKeyInfo]:
-        """Get all FK relationships involving a specific table.
+        """取得涉及特定資料表的所有外鍵關聯。
 
-        Args:
-            table_name: Table name (case-insensitive).
+        參數：
+            table_name: 資料表名稱（不分大小寫）。
 
-        Returns:
-            List of ForeignKeyInfo where table is parent or child.
+        回傳：
+            該資料表作為父表或子表的 ForeignKeyInfo 列表。
         """
         table_name = table_name.upper()
         cursor = self._conn.cursor()
@@ -141,13 +141,13 @@ class RelationshipExtractor:
         return relationships
 
     def _get_fk_columns(self, constraint_name: str) -> tuple[list[str], list[str]]:
-        """Get child and parent columns for a FK constraint.
+        """取得外鍵約束的子欄位和父欄位。
 
-        Args:
-            constraint_name: FK constraint name.
+        參數：
+            constraint_name: 外鍵約束名稱。
 
-        Returns:
-            Tuple of (child_columns, parent_columns).
+        回傳：
+            (子欄位, 父欄位) 的元組。
         """
         cursor = self._conn.cursor()
         cursor.execute(self.FK_COLUMNS_QUERY, {"constraint_name": constraint_name})

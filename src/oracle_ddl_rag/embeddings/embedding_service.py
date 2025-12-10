@@ -1,4 +1,4 @@
-"""Embedding services for semantic search with auto-detect capability."""
+"""具有自動偵測功能的語意搜尋嵌入服務。"""
 
 import os
 from abc import ABC, abstractmethod
@@ -12,67 +12,67 @@ from ..config import (
 
 
 class EmbeddingService(ABC):
-    """Abstract base class for embedding services."""
+    """嵌入服務的抽象基底類別。"""
 
     @abstractmethod
     def embed(self, texts: list[str]) -> list[list[float]]:
-        """Generate embeddings for a list of texts.
+        """為文字列表產生嵌入向量。
 
-        Args:
-            texts: List of text strings to embed.
+        參數：
+            texts: 要嵌入的文字字串列表。
 
-        Returns:
-            List of embedding vectors (one per input text).
+        回傳：
+            嵌入向量列表（每個輸入文字一個）。
         """
         pass
 
     @abstractmethod
     def embed_single(self, text: str) -> list[float]:
-        """Generate embedding for a single text.
+        """為單一文字產生嵌入向量。
 
-        Args:
-            text: Text string to embed.
+        參數：
+            text: 要嵌入的文字字串。
 
-        Returns:
-            Embedding vector.
+        回傳：
+            嵌入向量。
         """
         pass
 
     @property
     @abstractmethod
     def dimensions(self) -> int:
-        """Return the dimensionality of embeddings."""
+        """回傳嵌入的維度數。"""
         pass
 
     @property
     @abstractmethod
     def model_name(self) -> str:
-        """Return the model name being used."""
+        """回傳使用的模型名稱。"""
         pass
 
 
 class OpenAIEmbedding(EmbeddingService):
-    """OpenAI embedding service using text-embedding-3-small."""
+    """使用 text-embedding-3-small 的 OpenAI 嵌入服務。"""
 
     def __init__(
         self,
         model: str = OPENAI_EMBEDDING_MODEL,
         dims: int = OPENAI_EMBEDDING_DIMS,
     ):
-        """Initialize OpenAI embedding client.
+        """初始化 OpenAI 嵌入客戶端。
 
-        Args:
-            model: OpenAI model name.
-            dims: Number of embedding dimensions.
+        參數：
+            model: OpenAI 模型名稱。
+            dims: 嵌入維度數。
         """
         from openai import OpenAI
 
-        self._client = OpenAI()  # Uses OPENAI_API_KEY env var
+        self._client = OpenAI()  # 使用 OPENAI_API_KEY 環境變數
         self._model = model
         self._dims = dims
 
     def embed(self, texts: list[str]) -> list[list[float]]:
-        """Generate embeddings using OpenAI API."""
+        """使用 OpenAI API 產生嵌入向量。"""
         if not texts:
             return []
 
@@ -84,7 +84,7 @@ class OpenAIEmbedding(EmbeddingService):
         return [item.embedding for item in response.data]
 
     def embed_single(self, text: str) -> list[float]:
-        """Generate embedding for single text."""
+        """為單一文字產生嵌入向量。"""
         return self.embed([text])[0]
 
     @property
@@ -97,13 +97,13 @@ class OpenAIEmbedding(EmbeddingService):
 
 
 class LocalEmbedding(EmbeddingService):
-    """Local embedding service using sentence-transformers."""
+    """使用 sentence-transformers 的本地嵌入服務。"""
 
     def __init__(self, model_name: str = LOCAL_EMBEDDING_MODEL):
-        """Initialize local embedding model.
+        """初始化本地嵌入模型。
 
-        Args:
-            model_name: HuggingFace model name or path.
+        參數：
+            model_name: HuggingFace 模型名稱或路徑。
         """
         from sentence_transformers import SentenceTransformer
 
@@ -111,7 +111,7 @@ class LocalEmbedding(EmbeddingService):
         self._model_name = model_name
 
     def embed(self, texts: list[str]) -> list[list[float]]:
-        """Generate embeddings using local model."""
+        """使用本地模型產生嵌入向量。"""
         if not texts:
             return []
 
@@ -119,7 +119,7 @@ class LocalEmbedding(EmbeddingService):
         return embeddings.tolist()
 
     def embed_single(self, text: str) -> list[float]:
-        """Generate embedding for single text."""
+        """為單一文字產生嵌入向量。"""
         return self.embed([text])[0]
 
     @property
@@ -131,30 +131,30 @@ class LocalEmbedding(EmbeddingService):
         return self._model_name
 
 
-# Singleton instance
+# 單例實例
 _embedding_service: Optional[EmbeddingService] = None
 
 
 def get_embedding_service(force_local: bool = False) -> EmbeddingService:
-    """Get the embedding service instance (auto-detect or cached).
+    """取得嵌入服務實例（自動偵測或快取）。
 
-    Auto-detection logic:
-    1. If OPENAI_API_KEY is set, use OpenAI embeddings
-    2. Otherwise, use local sentence-transformers model
+    自動偵測邏輯：
+    1. 若設定了 OPENAI_API_KEY，使用 OpenAI 嵌入
+    2. 否則，使用本地 sentence-transformers 模型
 
-    Args:
-        force_local: If True, always use local model regardless of API key.
+    參數：
+        force_local: 若為 True，無論 API 金鑰都使用本地模型。
 
-    Returns:
-        EmbeddingService instance.
+    回傳：
+        EmbeddingService 實例。
     """
     global _embedding_service
 
-    # Return cached instance if available and not forcing local
+    # 若有快取且非強制本地，回傳快取實例
     if _embedding_service is not None and not force_local:
         return _embedding_service
 
-    # Auto-detect based on environment
+    # 根據環境自動偵測
     if not force_local and os.environ.get("OPENAI_API_KEY"):
         _embedding_service = OpenAIEmbedding()
     else:
@@ -164,6 +164,6 @@ def get_embedding_service(force_local: bool = False) -> EmbeddingService:
 
 
 def reset_embedding_service() -> None:
-    """Reset the cached embedding service (useful for testing)."""
+    """重置快取的嵌入服務（用於測試）。"""
     global _embedding_service
     _embedding_service = None

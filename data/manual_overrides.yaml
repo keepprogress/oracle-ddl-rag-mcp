@@ -1,18 +1,18 @@
-# Manual enum value definitions for columns without CHECK constraints
-# Format:
-# TABLE_NAME:
-#   COLUMN_NAME:
-#     - code: "VALUE"
-#       meaning: "Description of what this value means"
+# 手動列舉值定義 - 用於沒有 CHECK 約束的欄位
+# 格式：
+# 資料表名稱:
+#   欄位名稱:
+#     - code: "值"
+#       meaning: 此值代表的含義
 
-# Example:
+# 範例：
 # ORDERS:
 #   STATUS:
 #     - code: "0"
-#       meaning: Draft - order not yet submitted
+#       meaning: 草稿 - 訂單尚未提交
 #     - code: "1"
-#       meaning: Pending - awaiting approval
+#       meaning: 待處理 - 等待審核
 #     - code: "2"
-#       meaning: Approved - ready for processing
+#       meaning: 已核准 - 準備處理
 #     - code: "9"
-#       meaning: Cancelled - order was cancelled
+#       meaning: 已取消

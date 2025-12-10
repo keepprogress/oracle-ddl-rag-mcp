@@ -1,4 +1,4 @@
-"""Oracle enum value extractor from CHECK constraints."""
+"""從 CHECK 約束提取 Oracle 列舉值。"""
 
 import re
 from dataclasses import dataclass
@@ -13,7 +13,7 @@ from ..config import MANUAL_OVERRIDES_PATH
 
 @dataclass
 class EnumValue:
-    """Single enum value with optional meaning."""
+    """單一列舉值及選用的含義。"""
     code: str
     meaning: Optional[str] = None
 
@@ -26,11 +26,11 @@ class EnumValue:
 
 @dataclass
 class EnumInfo:
-    """Enum values for a column."""
+    """欄位的列舉值。"""
     table_name: str
     column_name: str
     values: list[EnumValue]
-    source: str  # 'check_constraint' or 'manual'
+    source: str  # 'check_constraint' 或 'manual'
 
     def to_dict(self) -> dict:
         return {
@@ -41,21 +41,21 @@ class EnumInfo:
         }
 
     def to_document(self) -> str:
-        """Create natural language description for embedding."""
+        """建立用於嵌入的自然語言描述。"""
         values_text = "\n".join(
-            f"- {v.code}: {v.meaning or 'No description'}"
+            f"- {v.code}: {v.meaning or '無描述'}"
             for v in self.values
         )
-        return f"""Enum values for {self.table_name}.{self.column_name}:
-Source: {self.source}
-Valid values:
+        return f"""{self.table_name}.{self.column_name} 的列舉值：
+來源：{self.source}
+有效值：
 {values_text}"""
 
 
 class EnumExtractor:
-    """Extract enum values from Oracle CHECK constraints and manual definitions."""
+    """從 Oracle CHECK 約束和手動定義提取列舉值。"""
 
-    # Query CHECK constraints with IN clauses
+    # 查詢含有 IN 子句的 CHECK 約束
     CHECK_CONSTRAINT_QUERY = """
         SELECT
             c.table_name,
@@ -68,33 +68,33 @@ class EnumExtractor:
     """
 
     def __init__(self, connection: Optional[oracledb.Connection] = None):
-        """Initialize enum extractor.
+        """初始化列舉提取器。
 
-        Args:
-            connection: Optional Oracle connection for CHECK constraint extraction.
-                       If None, only manual overrides will be loaded.
+        參數：
+            connection: 選用的 Oracle 連線，用於 CHECK 約束提取。
+                       若為 None，則只載入手動覆寫。
         """
         self._conn = connection
 
     def extract_all(self) -> list[EnumInfo]:
-        """Extract all enum values from CHECK constraints and manual overrides.
+        """從 CHECK 約束和手動覆寫提取所有列舉值。
 
-        Returns:
-            List of EnumInfo objects.
+        回傳：
+            EnumInfo 物件列表。
         """
-        enums: dict[str, EnumInfo] = {}  # keyed by TABLE.COLUMN
+        enums: dict[str, EnumInfo] = {}  # 以 TABLE.COLUMN 為鍵
 
-        # Extract from CHECK constraints first (if connection available)
+        # 首先從 CHECK 約束提取（如果有連線的話）
         if self._conn:
             for enum in self._extract_from_check_constraints():
                 key = f"{enum.table_name}.{enum.column_name}"
                 enums[key] = enum
 
-        # Load manual overrides (can override or supplement CHECK constraints)
+        # 載入手動覆寫（可覆寫或補充 CHECK 約束）
         for enum in self._load_manual_overrides():
             key = f"{enum.table_name}.{enum.column_name}"
             if key in enums:
-                # Merge: keep codes from CHECK, add meanings from manual
+                # 合併：保留 CHECK 的代碼，從手動添加含義
                 existing = enums[key]
                 manual_meanings = {v.code: v.meaning for v in enum.values}
                 for value in existing.values:
@@ -106,7 +106,7 @@ class EnumExtractor:
         return list(enums.values())
 
     def _extract_from_check_constraints(self) -> list[EnumInfo]:
-        """Extract enum values from CHECK constraints."""
+        """從 CHECK 約束提取列舉值。"""
         cursor = self._conn.cursor()
         cursor.execute(self.CHECK_CONSTRAINT_QUERY)
 
@@ -131,21 +131,21 @@ class EnumExtractor:
     def _parse_check_constraint(
         self, search_condition: str
     ) -> Optional[tuple[str, list[str]]]:
-        """Parse CHECK constraint to extract column name and valid values.
+        """解析 CHECK 約束以提取欄位名稱和有效值。
 
-        Handles patterns like:
+        處理以下模式：
         - STATUS IN ('ACTIVE', 'INACTIVE')
         - "STATUS" IN ('A', 'B', 'C')
         - TYPE IN (1, 2, 3)
 
-        Args:
-            search_condition: Oracle CHECK constraint condition.
+        參數：
+            search_condition: Oracle CHECK 約束條件。
 
-        Returns:
-            Tuple of (column_name, values) or None if not an IN constraint.
+        回傳：
+            (欄位名稱, 值列表) 的元組，若非 IN 約束則為 None。
         """
-        # Pattern: column_name IN (values)
-        # Column name can be quoted or unquoted
+        # 模式：column_name IN (values)
+        # 欄位名稱可能有引號或無引號
         pattern = r'["\']?(\w+)["\']?\s+IN\s*\(\s*([^)]+)\s*\)'
         match = re.search(pattern, search_condition, re.IGNORECASE)
 
@@ -155,15 +155,15 @@ class EnumExtractor:
         column_name = match.group(1)
         values_str = match.group(2)
 
-        # Extract values (quoted strings or numbers)
+        # 提取值（引號字串或數字）
         values = []
 
-        # Try quoted strings first: 'value1', 'value2'
+        # 先嘗試引號字串：'value1', 'value2'
         quoted_values = re.findall(r"'([^']*)'", values_str)
         if quoted_values:
             values = quoted_values
         else:
-            # Try unquoted numbers: 1, 2, 3
+            # 嘗試無引號數字：1, 2, 3
             number_values = re.findall(r'\b(\d+)\b', values_str)
             if number_values:
                 values = number_values
@@ -173,7 +173,7 @@ class EnumExtractor:
         return None
 
     def _load_manual_overrides(self) -> list[EnumInfo]:
-        """Load manual enum definitions from YAML file."""
+        """從 YAML 檔案載入手動列舉定義。"""
         if not MANUAL_OVERRIDES_PATH.exists():
             return []
 
@@ -214,14 +214,14 @@ class EnumExtractor:
     def get_enum_for_column(
         self, table_name: str, column_name: str
     ) -> Optional[EnumInfo]:
-        """Get enum values for a specific column.
+        """取得特定欄位的列舉值。
 
-        Args:
-            table_name: Table name (case-insensitive).
-            column_name: Column name (case-insensitive).
+        參數：
+            table_name: 資料表名稱（不分大小寫）。
+            column_name: 欄位名稱（不分大小寫）。
 
-        Returns:
-            EnumInfo or None if no enum defined.
+        回傳：
+            EnumInfo，若無定義列舉則為 None。
         """
         all_enums = self.extract_all()
         key = f"{table_name.upper()}.{column_name.upper()}"

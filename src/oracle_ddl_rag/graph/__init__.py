@@ -1,4 +1,4 @@
-"""Graph engine for table relationship navigation."""
+"""資料表關聯導航的圖形引擎。"""
 
 from .table_graph import TableGraph
 

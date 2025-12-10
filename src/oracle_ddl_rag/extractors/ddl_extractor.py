@@ -1,4 +1,4 @@
-"""Oracle DDL extractor for tables, columns, and indexes."""
+"""Oracle DDL 提取器，用於資料表、欄位和索引。"""
 
 from typing import Optional
 from dataclasses import dataclass
@@ -7,7 +7,7 @@ import oracledb
 
 @dataclass
 class ColumnInfo:
-    """Column metadata."""
+    """欄位中繼資料。"""
     name: str
     data_type: str
     nullable: bool
@@ -26,7 +26,7 @@ class ColumnInfo:
 
 @dataclass
 class IndexInfo:
-    """Index metadata."""
+    """索引中繼資料。"""
     name: str
     columns: list[str]
     is_unique: bool
@@ -41,7 +41,7 @@ class IndexInfo:
 
 @dataclass
 class TableInfo:
-    """Table metadata with columns."""
+    """包含欄位的資料表中繼資料。"""
     name: str
     comment: Optional[str]
     row_count: Optional[int]
@@ -60,31 +60,31 @@ class TableInfo:
         }
 
     def to_document(self) -> str:
-        """Create natural language description for embedding."""
+        """建立用於嵌入的自然語言描述。"""
         col_descriptions = []
-        for c in self.columns[:15]:  # Limit for embedding size
+        for c in self.columns[:15]:  # 限制嵌入大小
             desc = f"- {c.name} ({c.data_type})"
             if c.comment:
                 desc += f": {c.comment}"
             col_descriptions.append(desc)
 
         if len(self.columns) > 15:
-            col_descriptions.append(f"... and {len(self.columns) - 15} more columns")
+            col_descriptions.append(f"... 以及另外 {len(self.columns) - 15} 個欄位")
 
-        pk_text = f"Primary Key: {', '.join(self.primary_key)}" if self.primary_key else ""
+        pk_text = f"主鍵：{', '.join(self.primary_key)}" if self.primary_key else ""
 
-        return f"""Table: {self.name}
-Description: {self.comment or 'No description available'}
+        return f"""資料表：{self.name}
+描述：{self.comment or '無可用描述'}
 {pk_text}
-Columns:
+欄位：
 {chr(10).join(col_descriptions)}
-Row Count: {self.row_count or 'Unknown'}""".strip()
+資料列數：{self.row_count or '未知'}""".strip()
 
 
 class DDLExtractor:
-    """Extract DDL metadata from Oracle database."""
+    """從 Oracle 資料庫提取 DDL 中繼資料。"""
 
-    # SQL Queries using USER_* views (single schema)
+    # 使用 USER_* 視圖的 SQL 查詢（單一結構描述）
     TABLES_QUERY = """
         SELECT t.table_name, t.num_rows, tc.comments
         FROM user_tables t
@@ -139,18 +139,18 @@ class DDLExtractor:
     """
 
     def __init__(self, connection: oracledb.Connection):
-        """Initialize with an Oracle connection.
+        """以 Oracle 連線初始化。
 
-        Args:
-            connection: Active Oracle database connection.
+        參數：
+            connection: 活動的 Oracle 資料庫連線。
         """
         self._conn = connection
 
     def get_all_tables(self) -> list[TableInfo]:
-        """Extract all tables with their metadata.
+        """提取所有資料表及其中繼資料。
 
-        Returns:
-            List of TableInfo objects with full metadata.
+        回傳：
+            包含完整中繼資料的 TableInfo 物件列表。
         """
         cursor = self._conn.cursor()
         cursor.execute(self.TABLES_QUERY)
@@ -174,10 +174,10 @@ class DDLExtractor:
         return tables
 
     def get_table_names(self) -> list[str]:
-        """Get just table names without full metadata.
+        """僅取得資料表名稱，不含完整中繼資料。
 
-        Returns:
-            List of table names.
+        回傳：
+            資料表名稱列表。
         """
         cursor = self._conn.cursor()
         cursor.execute("SELECT table_name FROM user_tables ORDER BY table_name")
@@ -186,13 +186,13 @@ class DDLExtractor:
         return names
 
     def get_table(self, table_name: str) -> Optional[TableInfo]:
-        """Get metadata for a specific table.
+        """取得特定資料表的中繼資料。
 
-        Args:
-            table_name: Name of the table (case-insensitive).
+        參數：
+            table_name: 資料表名稱（不分大小寫）。
 
-        Returns:
-            TableInfo object or None if not found.
+        回傳：
+            TableInfo 物件，若找不到則為 None。
         """
         table_name = table_name.upper()
         cursor = self._conn.cursor()
@@ -223,13 +223,13 @@ class DDLExtractor:
         )
 
     def _get_columns(self, table_name: str) -> list[ColumnInfo]:
-        """Get column metadata for a table."""
+        """取得資料表的欄位中繼資料。"""
         cursor = self._conn.cursor()
         cursor.execute(self.COLUMNS_QUERY, {"table_name": table_name})
 
         columns = []
         for _, col_name, data_type, nullable, data_default, comment in cursor:
-            # Clean up data_default (remove trailing spaces)
+            # 清理 data_default（移除尾端空白）
             if data_default:
                 data_default = data_default.strip()
 
@@ -245,7 +245,7 @@ class DDLExtractor:
         return columns
 
     def _get_primary_key(self, table_name: str) -> list[str]:
-        """Get primary key columns for a table."""
+        """取得資料表的主鍵欄位。"""
         cursor = self._conn.cursor()
         cursor.execute(self.PRIMARY_KEY_QUERY, {"table_name": table_name})
         pk_columns = [row[0] for row in cursor]
@@ -253,7 +253,7 @@ class DDLExtractor:
         return pk_columns
 
     def _get_indexes(self, table_name: str) -> list[IndexInfo]:
-        """Get index metadata for a table."""
+        """取得資料表的索引中繼資料。"""
         cursor = self._conn.cursor()
         cursor.execute(self.INDEXES_QUERY, {"table_name": table_name})
 

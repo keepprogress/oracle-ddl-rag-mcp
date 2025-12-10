@@ -1,4 +1,4 @@
-"""Get valid values for enum-like columns (STATUS, TYPE, etc.)."""
+"""取得列舉型欄位（STATUS、TYPE 等）的有效值。"""
 
 from ..storage import SQLiteCache
 
@@ -7,21 +7,20 @@ async def get_enum_values(
     table_name: str,
     column_name: str,
 ) -> dict:
-    """Get valid values for a STATUS/TYPE column.
+    """取得 STATUS/TYPE 欄位的有效值。
 
-    IMPORTANT: Always use this tool BEFORE filtering by status, type,
-    or any column that has a limited set of valid values.
+    重要：在依狀態、類型或任何有限有效值的欄位篩選之前，請務必使用此工具。
 
-    Args:
-        table_name: Table containing the column.
-        column_name: Column name to get values for.
+    參數：
+        table_name: 包含該欄位的資料表。
+        column_name: 要取得值的欄位名稱。
 
-    Returns:
-        Dictionary with valid values and their meanings.
+    回傳：
+        包含有效值及其含義（如有）的字典。
     """
     cache = SQLiteCache()
 
-    # First check if enum values are defined
+    # 首先檢查是否有定義列舉值
     enum = cache.get_enum(table_name, column_name)
 
     if enum:
@@ -31,18 +30,18 @@ async def get_enum_values(
             "column_name": enum["column_name"],
             "source": enum["source"],
             "values": enum["values"],
-            "usage_hint": f"Use these exact values when filtering by {table_name}.{column_name}",
+            "usage_hint": f"在依 {table_name}.{column_name} 篩選時，請使用這些精確值",
         }
 
-    # Check if the table exists
+    # 檢查資料表是否存在
     table = cache.get_table(table_name)
     if not table:
         return {
             "success": False,
-            "error": f"Table '{table_name}' not found.",
+            "error": f"找不到資料表「{table_name}」。",
         }
 
-    # Check if the column exists
+    # 檢查欄位是否存在
     column = None
     for col in table["columns"]:
         if col["name"].upper() == column_name.upper():
@@ -53,21 +52,21 @@ async def get_enum_values(
         available_columns = [c["name"] for c in table["columns"]]
         return {
             "success": False,
-            "error": f"Column '{column_name}' not found in table '{table_name}'.",
-            "available_columns": available_columns[:20],  # Limit for readability
+            "error": f"資料表「{table_name}」中找不到欄位「{column_name}」。",
+            "available_columns": available_columns[:20],  # 限制顯示數量
         }
 
-    # Column exists but no enum defined
+    # 欄位存在但沒有定義列舉值
     return {
         "success": False,
         "table_name": table_name.upper(),
         "column_name": column_name.upper(),
         "column_type": column["data_type"],
-        "message": "No enum values are defined for this column.",
+        "message": "此欄位沒有定義列舉值。",
         "suggestions": [
-            "Check if this column has a CHECK constraint in the DDL",
-            "Look for comments in the column definition",
-            "This may not be an enum column - values might be free-form",
-            "You may need to query the table to find distinct values",
+            "檢查 DDL 中是否有 CHECK 約束",
+            "查看欄位定義中的註解",
+            "這可能不是列舉欄位 - 值可能是自由格式",
+            "您可能需要查詢資料表來找出不同的值",
         ],
     }

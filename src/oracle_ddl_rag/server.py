@@ -1,4 +1,4 @@
-"""MCP Server for Oracle DDL RAG - exposes schema intelligence tools to AI assistants."""
+"""MCP 伺服器 - 為 AI 助手提供 Oracle DDL RAG 結構智慧工具。"""
 
 import asyncio
 from mcp.server import Server
@@ -16,27 +16,27 @@ from .tools import (
 )
 from .config import DEFAULT_SEARCH_LIMIT, DEFAULT_PATH_MAX_HOPS
 
-# Initialize MCP Server
+# 初始化 MCP 伺服器
 app = Server("oracle-ddl-rag")
 
 
-# Tool definitions with schemas
+# 工具定義與結構描述
 TOOLS = [
     Tool(
         name="search_db_schema",
-        description="""Search database schemas by business concept or table name.
-USE THIS FIRST before writing any SQL to find relevant tables.
-Examples: "customer orders", "payment transactions", "user authentication".""",
+        description="""依業務概念或資料表名稱搜尋資料庫結構。
+在撰寫任何 SQL 之前請先使用此工具來尋找相關資料表。
+範例：「客戶訂單」、「付款交易」、「使用者驗證」。""",
         inputSchema={
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Natural language description or keywords to search for",
+                    "description": "自然語言描述或關鍵字",
                 },
                 "limit": {
                     "type": "integer",
-                    "description": f"Maximum results to return (default: {DEFAULT_SEARCH_LIMIT})",
+                    "description": f"最大回傳結果數（預設：{DEFAULT_SEARCH_LIMIT}）",
                     "default": DEFAULT_SEARCH_LIMIT,
                 },
             },
@@ -45,18 +45,18 @@ Examples: "customer orders", "payment transactions", "user authentication".""",
     ),
     Tool(
         name="get_table_schema",
-        description="""Get complete schema for a specific table.
-Use this to get detailed column information BEFORE writing SQL that uses specific columns.""",
+        description="""取得特定資料表的完整結構。
+在撰寫使用特定欄位的 SQL 之前，請使用此工具取得詳細欄位資訊。""",
         inputSchema={
             "type": "object",
             "properties": {
                 "table_name": {
                     "type": "string",
-                    "description": "Exact table name (case-insensitive)",
+                    "description": "精確的資料表名稱（不分大小寫）",
                 },
                 "include_indexes": {
                     "type": "boolean",
-                    "description": "Whether to include index definitions",
+                    "description": "是否包含索引定義",
                     "default": False,
                 },
             },
@@ -65,19 +65,19 @@ Use this to get detailed column information BEFORE writing SQL that uses specifi
     ),
     Tool(
         name="get_enum_values",
-        description="""Get valid values for STATUS/TYPE columns.
-ALWAYS USE THIS before filtering by status, type, or any enum-like column.
-This prevents using invalid values that don't exist in the database.""",
+        description="""取得 STATUS/TYPE 欄位的有效值。
+在依狀態、類型或任何列舉型欄位篩選之前，請務必使用此工具。
+這可以防止使用資料庫中不存在的無效值。""",
         inputSchema={
             "type": "object",
             "properties": {
                 "table_name": {
                     "type": "string",
-                    "description": "Table containing the column",
+                    "description": "包含該欄位的資料表",
                 },
                 "column_name": {
                     "type": "string",
-                    "description": "Column name (e.g., STATUS, TYPE, IS_ACTIVE)",
+                    "description": "欄位名稱（例如：STATUS、TYPE、IS_ACTIVE）",
                 },
             },
             "required": ["table_name", "column_name"],
@@ -85,19 +85,19 @@ This prevents using invalid values that don't exist in the database.""",
     ),
     Tool(
         name="get_join_pattern",
-        description="""Get the correct JOIN condition between two tables.
-ALWAYS USE THIS before writing JOINs to ensure correct column mappings.
-This prevents hallucinated or incorrect join conditions.""",
+        description="""取得兩個資料表之間正確的 JOIN 條件。
+在撰寫 JOIN 之前請務必使用此工具，以確保正確的欄位對應。
+這可以防止幻覺或錯誤的 JOIN 條件。""",
         inputSchema={
             "type": "object",
             "properties": {
                 "table_a": {
                     "type": "string",
-                    "description": "First table name",
+                    "description": "第一個資料表名稱",
                 },
                 "table_b": {
                     "type": "string",
-                    "description": "Second table name",
+                    "description": "第二個資料表名稱",
                 },
             },
             "required": ["table_a", "table_b"],
@@ -105,23 +105,22 @@ This prevents hallucinated or incorrect join conditions.""",
     ),
     Tool(
         name="find_join_path",
-        description="""Find the shortest join path between two tables that may not be directly related.
-Use this when tables don't have a direct foreign key but you need to JOIN them
-through intermediate tables.""",
+        description="""尋找兩個可能沒有直接關聯的資料表之間的最短 JOIN 路徑。
+當資料表沒有直接外鍵但需要透過中繼資料表進行 JOIN 時使用此工具。""",
         inputSchema={
             "type": "object",
             "properties": {
                 "source_table": {
                     "type": "string",
-                    "description": "Starting table name",
+                    "description": "起始資料表名稱",
                 },
                 "target_table": {
                     "type": "string",
-                    "description": "Destination table name",
+                    "description": "目標資料表名稱",
                 },
                 "max_hops": {
                     "type": "integer",
-                    "description": f"Maximum intermediate tables (default: {DEFAULT_PATH_MAX_HOPS})",
+                    "description": f"最大中繼資料表數（預設：{DEFAULT_PATH_MAX_HOPS}）",
                     "default": DEFAULT_PATH_MAX_HOPS,
                 },
             },
@@ -130,22 +129,22 @@ through intermediate tables.""",
     ),
     Tool(
         name="search_columns",
-        description="""Search for columns across all tables by name or description.
-Use this when looking for specific data fields without knowing which table contains them.""",
+        description="""依名稱或描述在所有資料表中搜尋欄位。
+當尋找特定資料欄位但不知道在哪個資料表時使用此工具。""",
         inputSchema={
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Column name pattern or description (e.g., 'email', 'created date')",
+                    "description": "欄位名稱模式或描述（例如：「email」、「建立日期」）",
                 },
                 "data_type": {
                     "type": "string",
-                    "description": "Optional filter by Oracle data type (e.g., VARCHAR2, NUMBER, DATE)",
+                    "description": "依 Oracle 資料類型篩選（例如：VARCHAR2、NUMBER、DATE）",
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum results (default: 20)",
+                    "description": "最大結果數（預設：20）",
                     "default": 20,
                 },
             },
@@ -157,15 +156,15 @@ Use this when looking for specific data fields without knowing which table conta
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
-    """Return list of available tools."""
+    """回傳可用工具列表。"""
     return TOOLS
 
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-    """Handle tool calls from MCP clients."""
+    """處理來自 MCP 客戶端的工具呼叫。"""
 
-    # Map tool names to handlers
+    # 將工具名稱對應到處理函數
     handlers = {
         "search_db_schema": lambda args: search_db_schema(
             query=args["query"],
@@ -199,7 +198,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     if not handler:
         return [TextContent(
             type="text",
-            text=json.dumps({"error": f"Unknown tool: {name}"}, indent=2),
+            text=json.dumps({"error": f"未知的工具：{name}"}, indent=2),
         )]
 
     try:
@@ -220,7 +219,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 
 def main():
-    """Entry point for the MCP server."""
+    """MCP 伺服器入口點。"""
     async def run():
         async with stdio_server() as (read_stream, write_stream):
             await app.run(

@@ -1,4 +1,4 @@
-"""Search for columns across all tables."""
+"""在所有資料表中搜尋欄位。"""
 
 from typing import Optional
 
@@ -12,24 +12,23 @@ async def search_columns(
     data_type: Optional[str] = None,
     limit: int = DEFAULT_SEARCH_LIMIT * 2,
 ) -> dict:
-    """Search for columns across all tables by name or description.
+    """依名稱或描述在所有資料表中搜尋欄位。
 
-    Use this tool when looking for a specific type of data field
-    without knowing which table contains it.
+    當尋找特定類型的資料欄位但不知道在哪個資料表時使用此工具。
 
-    Args:
-        query: Column name pattern or description (e.g., "email", "created date").
-        data_type: Optional filter by Oracle data type (e.g., "VARCHAR2", "NUMBER", "DATE").
-        limit: Maximum number of results (default: 20).
+    參數：
+        query: 欄位名稱模式或描述（例如：「email」、「建立日期」）。
+        data_type: 選用，依 Oracle 資料類型篩選（例如：「VARCHAR2」、「NUMBER」、「DATE」）。
+        limit: 最大結果數（預設：20）。
 
-    Returns:
-        Dictionary with matching columns and their table names.
+    回傳：
+        包含符合欄位及其資料表名稱的字典。
     """
-    # Get embedding for the query
+    # 取得查詢的嵌入向量
     embedding_service = get_embedding_service()
     query_embedding = embedding_service.embed_single(query)
 
-    # Search in ChromaDB
+    # 在 ChromaDB 中搜尋
     store = ChromaStore()
     results = store.search_columns(
         query_embedding,
@@ -38,10 +37,10 @@ async def search_columns(
     )
 
     if not results:
-        message = f"No columns found matching '{query}'"
+        message = f"找不到符合「{query}」的欄位"
         if data_type:
-            message += f" with type '{data_type}'"
-        message += ". Try different keywords or remove the type filter."
+            message += f"（類型為「{data_type}」）"
+        message += "。請嘗試其他關鍵字或移除類型篩選。"
 
         return {
             "success": True,
@@ -51,7 +50,7 @@ async def search_columns(
             "message": message,
         }
 
-    # Format results
+    # 格式化結果
     formatted_results = []
     for r in results:
         metadata = r.get("metadata", {})

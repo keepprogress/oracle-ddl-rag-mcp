@@ -1,4 +1,4 @@
-"""Graph-based table relationship navigation using NetworkX."""
+"""使用 NetworkX 的圖形化資料表關聯導航。"""
 
 from typing import Optional
 from dataclasses import dataclass
@@ -7,7 +7,7 @@ import networkx as nx
 
 @dataclass
 class JoinStep:
-    """A single step in a join path."""
+    """JOIN 路徑中的單一步驟。"""
     step_number: int
     from_table: str
     to_table: str
@@ -26,7 +26,7 @@ class JoinStep:
 
 @dataclass
 class JoinPath:
-    """Complete join path between two tables."""
+    """兩個資料表之間的完整 JOIN 路徑。"""
     source: str
     target: str
     steps: list[JoinStep]
@@ -41,7 +41,7 @@ class JoinPath:
         }
 
     def to_sql(self) -> str:
-        """Generate SQL JOIN clause."""
+        """產生 SQL JOIN 子句。"""
         if not self.steps:
             return ""
 
@@ -52,11 +52,11 @@ class JoinPath:
 
 
 class TableGraph:
-    """Graph for navigating table relationships via FK constraints."""
+    """透過外鍵約束導航資料表關聯的圖形。"""
 
     def __init__(self):
-        """Initialize an empty graph."""
-        # Undirected graph (JOINs work both ways)
+        """初始化空圖形。"""
+        # 無向圖（JOIN 雙向運作）
         self.graph = nx.Graph()
 
     def add_relationship(
@@ -67,19 +67,19 @@ class TableGraph:
         child_columns: list[str],
         constraint_name: Optional[str] = None,
     ) -> None:
-        """Add a FK relationship to the graph.
+        """將外鍵關聯加入圖形。
 
-        Args:
-            parent_table: Parent (referenced) table name.
-            child_table: Child (referencing) table name.
-            parent_columns: Parent table columns in the FK.
-            child_columns: Child table columns in the FK.
-            constraint_name: Optional FK constraint name.
+        參數：
+            parent_table: 父（被參照）資料表名稱。
+            child_table: 子（參照）資料表名稱。
+            parent_columns: 外鍵中的父資料表欄位。
+            child_columns: 外鍵中的子資料表欄位。
+            constraint_name: 選用的外鍵約束名稱。
         """
         parent_table = parent_table.upper()
         child_table = child_table.upper()
 
-        # Store both directions with column info
+        # 儲存雙向及欄位資訊
         self.graph.add_edge(
             parent_table,
             child_table,
@@ -91,11 +91,11 @@ class TableGraph:
         )
 
     def build_from_relationships(self, relationships: list[dict]) -> None:
-        """Build graph from a list of relationship dictionaries.
+        """從關聯字典列表建立圖形。
 
-        Args:
-            relationships: List of dicts with parent_table, child_table,
-                          parent_columns, child_columns, constraint_name.
+        參數：
+            relationships: 包含 parent_table、child_table、
+                          parent_columns、child_columns、constraint_name 的字典列表。
         """
         for rel in relationships:
             self.add_relationship(
@@ -112,15 +112,15 @@ class TableGraph:
         target: str,
         max_hops: int = 4,
     ) -> Optional[JoinPath]:
-        """Find the shortest join path between two tables.
+        """尋找兩個資料表之間的最短 JOIN 路徑。
 
-        Args:
-            source: Starting table name.
-            target: Target table name.
-            max_hops: Maximum number of intermediate tables.
+        參數：
+            source: 起始資料表名稱。
+            target: 目標資料表名稱。
+            max_hops: 最大中繼資料表數。
 
-        Returns:
-            JoinPath object or None if no path exists.
+        回傳：
+            JoinPath 物件，若無路徑則為 None。
         """
         source = source.upper()
         target = target.upper()
@@ -135,11 +135,11 @@ class TableGraph:
         except nx.NetworkXNoPath:
             return None
 
-        # Check max hops (path length - 1 = number of edges)
+        # 檢查最大跳數（路徑長度 - 1 = 邊數）
         if len(path) - 1 > max_hops:
             return None
 
-        # Build join steps
+        # 建立 JOIN 步驟
         steps = []
         for i in range(len(path) - 1):
             from_table = path[i]
@@ -171,15 +171,15 @@ class TableGraph:
         to_table: str,
         edge_data: dict,
     ) -> str:
-        """Format the JOIN condition between two tables.
+        """格式化兩個資料表之間的 JOIN 條件。
 
-        Args:
-            from_table: First table in the join.
-            to_table: Second table in the join.
-            edge_data: Edge metadata with column mappings.
+        參數：
+            from_table: JOIN 中的第一個資料表。
+            to_table: JOIN 中的第二個資料表。
+            edge_data: 含有欄位對應的邊中繼資料。
 
-        Returns:
-            SQL JOIN condition string.
+        回傳：
+            SQL JOIN 條件字串。
         """
         parent = edge_data.get("parent")
         child = edge_data.get("child")
@@ -200,14 +200,14 @@ class TableGraph:
         table_a: str,
         table_b: str,
     ) -> Optional[dict]:
-        """Get direct FK relationship between two tables.
+        """取得兩個資料表之間的直接外鍵關聯。
 
-        Args:
-            table_a: First table name.
-            table_b: Second table name.
+        參數：
+            table_a: 第一個資料表名稱。
+            table_b: 第二個資料表名稱。
 
-        Returns:
-            Relationship dict or None if not directly connected.
+        回傳：
+            關聯字典，若未直接連接則為 None。
         """
         table_a = table_a.upper()
         table_b = table_b.upper()
@@ -235,14 +235,14 @@ class TableGraph:
         table_name: str,
         max_hops: int = 2,
     ) -> list[dict]:
-        """Get all tables within N hops of a given table.
+        """取得指定資料表 N 跳內的所有資料表。
 
-        Args:
-            table_name: Starting table name.
-            max_hops: Maximum distance.
+        參數：
+            table_name: 起始資料表名稱。
+            max_hops: 最大距離。
 
-        Returns:
-            List of dicts with table_name and distance.
+        回傳：
+            包含 table_name 和 distance 的字典列表。
         """
         table_name = table_name.upper()
 
@@ -261,16 +261,16 @@ class TableGraph:
                     "distance": distance,
                 })
 
-        # Sort by distance
+        # 依距離排序
         related.sort(key=lambda x: (x["distance"], x["table_name"]))
         return related
 
     def get_all_tables(self) -> list[str]:
-        """Get all table names in the graph."""
+        """取得圖形中所有資料表名稱。"""
         return list(self.graph.nodes())
 
     def get_stats(self) -> dict:
-        """Get graph statistics."""
+        """取得圖形統計資訊。"""
         return {
             "tables": self.graph.number_of_nodes(),
             "relationships": self.graph.number_of_edges(),

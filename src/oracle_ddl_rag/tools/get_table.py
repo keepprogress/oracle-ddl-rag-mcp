@@ -1,4 +1,4 @@
-"""Get detailed schema for a specific table."""
+"""取得特定資料表的詳細結構。"""
 
 from ..storage import SQLiteCache
 
@@ -7,24 +7,22 @@ async def get_table_schema(
     table_name: str,
     include_indexes: bool = False,
 ) -> dict:
-    """Get complete schema for a specific table by name.
+    """依名稱取得特定資料表的完整結構。
 
-    Use this tool to get detailed column information before writing SQL
-    that references specific columns.
+    在撰寫引用特定欄位的 SQL 前使用此工具取得詳細欄位資訊。
 
-    Args:
-        table_name: Exact table name (case-insensitive).
-        include_indexes: Whether to include index definitions.
+    參數：
+        table_name: 精確的資料表名稱（不分大小寫）。
+        include_indexes: 是否包含索引定義。
 
-    Returns:
-        Dictionary with complete table schema including columns,
-        primary key, and optionally indexes.
+    回傳：
+        包含完整資料表結構的字典，含欄位、主鍵及選用的索引。
     """
     cache = SQLiteCache()
     table = cache.get_table(table_name)
 
     if not table:
-        # Try to suggest similar tables
+        # 嘗試建議類似的資料表
         all_tables = cache.get_all_tables()
         suggestions = [
             t["table_name"] for t in all_tables
@@ -33,11 +31,11 @@ async def get_table_schema(
 
         return {
             "success": False,
-            "error": f"Table '{table_name}' not found.",
+            "error": f"找不到資料表「{table_name}」。",
             "suggestions": suggestions if suggestions else None,
         }
 
-    # Format columns for readability
+    # 格式化欄位以提高可讀性
     columns_formatted = []
     for col in table["columns"]:
         col_info = {
@@ -54,7 +52,7 @@ async def get_table_schema(
     result = {
         "success": True,
         "table_name": table["table_name"],
-        "description": table.get("comment") or "No description available",
+        "description": table.get("comment") or "無可用描述",
         "row_count": table.get("row_count"),
         "primary_key": table.get("primary_key", []),
         "columns": columns_formatted,
@@ -63,7 +61,7 @@ async def get_table_schema(
     if include_indexes and table.get("indexes"):
         result["indexes"] = table["indexes"]
 
-    # Get relationships for this table
+    # 取得此資料表的關聯
     relationships = cache.get_table_relationships(table_name)
     if relationships:
         result["relationships"] = [

@@ -1,4 +1,4 @@
-"""MCP Tools for Oracle DDL RAG."""
+"""Oracle DDL RAG 的 MCP 工具。"""
 
 from .search_schema import search_db_schema
 from .get_table import get_table_schema

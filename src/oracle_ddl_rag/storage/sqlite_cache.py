@@ -1,4 +1,4 @@
-"""SQLite cache for fast structured metadata lookups."""
+"""用於快速結構化中繼資料查詢的 SQLite 快取。"""
 
 import json
 from datetime import datetime
@@ -14,15 +14,15 @@ Base = declarative_base()
 
 
 class TableModel(Base):
-    """Table metadata model."""
+    """資料表中繼資料模型。"""
     __tablename__ = "tables"
 
     table_name = Column(String(128), primary_key=True)
-    columns_json = Column(Text)  # JSON list of column definitions
-    primary_key_json = Column(Text)  # JSON list of PK columns
+    columns_json = Column(Text)  # JSON 欄位定義列表
+    primary_key_json = Column(Text)  # JSON 主鍵欄位列表
     comment = Column(Text)
     row_count = Column(Integer)
-    indexes_json = Column(Text)  # JSON list of indexes
+    indexes_json = Column(Text)  # JSON 索引列表
     last_synced = Column(DateTime, default=datetime.utcnow)
 
     @property
@@ -51,14 +51,14 @@ class TableModel(Base):
 
 
 class EnumModel(Base):
-    """Enum values for STATUS/TYPE columns."""
+    """STATUS/TYPE 欄位的列舉值。"""
     __tablename__ = "enums"
 
     id = Column(String(256), primary_key=True)  # TABLE_NAME.COLUMN_NAME
     table_name = Column(String(128), index=True)
     column_name = Column(String(128))
-    values_json = Column(Text)  # JSON list of {code, meaning}
-    source = Column(String(50))  # 'check_constraint', 'manual'
+    values_json = Column(Text)  # JSON {code, meaning} 列表
+    source = Column(String(50))  # 'check_constraint'、'manual'
     last_synced = Column(DateTime, default=datetime.utcnow)
 
     @property
@@ -71,14 +71,14 @@ class EnumModel(Base):
 
 
 class RelationshipModel(Base):
-    """Foreign key relationships between tables."""
+    """資料表之間的外鍵關聯。"""
     __tablename__ = "relationships"
 
     id = Column(String(256), primary_key=True)  # CHILD_TABLE->PARENT_TABLE
     parent_table = Column(String(128), index=True)
     child_table = Column(String(128), index=True)
-    parent_columns_json = Column(Text)  # JSON list
-    child_columns_json = Column(Text)  # JSON list
+    parent_columns_json = Column(Text)  # JSON 列表
+    child_columns_json = Column(Text)  # JSON 列表
     constraint_name = Column(String(128))
     last_synced = Column(DateTime, default=datetime.utcnow)
 
@@ -100,7 +100,7 @@ class RelationshipModel(Base):
 
 
 class SyncMetadataModel(Base):
-    """Track sync metadata."""
+    """追蹤同步中繼資料。"""
     __tablename__ = "sync_metadata"
 
     key = Column(String(64), primary_key=True)
@@ -109,13 +109,13 @@ class SyncMetadataModel(Base):
 
 
 class SQLiteCache:
-    """Fast structured metadata cache using SQLite."""
+    """使用 SQLite 的快速結構化中繼資料快取。"""
 
     def __init__(self, path: Optional[str] = None):
-        """Initialize SQLite database.
+        """初始化 SQLite 資料庫。
 
-        Args:
-            path: Override path for SQLite file. Uses default if None.
+        參數：
+            path: SQLite 檔案的覆寫路徑。若為 None 則使用預設值。
         """
         db_path = path or str(SQLITE_PATH)
         DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -127,13 +127,13 @@ class SQLiteCache:
     def _get_session(self) -> Session:
         return self.SessionLocal()
 
-    # ========== Table Operations ==========
+    # ========== 資料表操作 ==========
 
     def upsert_table(self, data: dict) -> None:
-        """Insert or update a table record.
+        """插入或更新資料表記錄。
 
-        Args:
-            data: Dictionary with table_name, columns, primary_key, comment, etc.
+        參數：
+            data: 包含 table_name、columns、primary_key、comment 等的字典。
         """
         with self._get_session() as session:
             table = session.get(TableModel, data["table_name"].upper())
@@ -150,13 +150,13 @@ class SQLiteCache:
             session.commit()
 
     def get_table(self, table_name: str) -> Optional[dict]:
-        """Get table metadata by name.
+        """依名稱取得資料表中繼資料。
 
-        Args:
-            table_name: Table name (case-insensitive).
+        參數：
+            table_name: 資料表名稱（不分大小寫）。
 
-        Returns:
-            Dictionary with table metadata, or None if not found.
+        回傳：
+            包含資料表中繼資料的字典，若找不到則為 None。
         """
         with self._get_session() as session:
             table = session.get(TableModel, table_name.upper())
@@ -172,7 +172,7 @@ class SQLiteCache:
             return None
 
     def get_all_tables(self) -> list[dict]:
-        """Get all table names."""
+        """取得所有資料表名稱。"""
         with self._get_session() as session:
             tables = session.query(TableModel).all()
             return [
@@ -184,13 +184,13 @@ class SQLiteCache:
                 for t in tables
             ]
 
-    # ========== Enum Operations ==========
+    # ========== 列舉操作 ==========
 
     def upsert_enum(self, data: dict) -> None:
-        """Insert or update enum values for a column.
+        """插入或更新欄位的列舉值。
 
-        Args:
-            data: Dictionary with table_name, column_name, values, source.
+        參數：
+            data: 包含 table_name、column_name、values、source 的字典。
         """
         with self._get_session() as session:
             enum_id = f"{data['table_name'].upper()}.{data['column_name'].upper()}"
@@ -207,14 +207,14 @@ class SQLiteCache:
             session.commit()
 
     def get_enum(self, table_name: str, column_name: str) -> Optional[dict]:
-        """Get enum values for a specific column.
+        """取得特定欄位的列舉值。
 
-        Args:
-            table_name: Table name (case-insensitive).
-            column_name: Column name (case-insensitive).
+        參數：
+            table_name: 資料表名稱（不分大小寫）。
+            column_name: 欄位名稱（不分大小寫）。
 
-        Returns:
-            Dictionary with enum values, or None if not found.
+        回傳：
+            包含列舉值的字典，若找不到則為 None。
         """
         with self._get_session() as session:
             enum_id = f"{table_name.upper()}.{column_name.upper()}"
@@ -228,13 +228,13 @@ class SQLiteCache:
                 }
             return None
 
-    # ========== Relationship Operations ==========
+    # ========== 關聯操作 ==========
 
     def upsert_relationship(self, data: dict) -> None:
-        """Insert or update a foreign key relationship.
+        """插入或更新外鍵關聯。
 
-        Args:
-            data: Dictionary with parent_table, child_table, columns, etc.
+        參數：
+            data: 包含 parent_table、child_table、columns 等的字典。
         """
         with self._get_session() as session:
             parent = data["parent_table"].upper()
@@ -255,18 +255,18 @@ class SQLiteCache:
             session.commit()
 
     def get_relationship(self, table_a: str, table_b: str) -> Optional[dict]:
-        """Get direct FK relationship between two tables.
+        """取得兩個資料表之間的直接外鍵關聯。
 
-        Args:
-            table_a: First table name (case-insensitive).
-            table_b: Second table name (case-insensitive).
+        參數：
+            table_a: 第一個資料表名稱（不分大小寫）。
+            table_b: 第二個資料表名稱（不分大小寫）。
 
-        Returns:
-            Dictionary with relationship details, or None if not found.
+        回傳：
+            包含關聯詳情的字典，若找不到則為 None。
         """
         a, b = table_a.upper(), table_b.upper()
         with self._get_session() as session:
-            # Try both directions
+            # 嘗試兩個方向
             for parent, child in [(a, b), (b, a)]:
                 rel_id = f"{child}->{parent}"
                 rel = session.get(RelationshipModel, rel_id)
@@ -281,7 +281,7 @@ class SQLiteCache:
             return None
 
     def get_all_relationships(self) -> list[dict]:
-        """Get all FK relationships."""
+        """取得所有外鍵關聯。"""
         with self._get_session() as session:
             rels = session.query(RelationshipModel).all()
             return [
@@ -296,13 +296,13 @@ class SQLiteCache:
             ]
 
     def get_table_relationships(self, table_name: str) -> list[dict]:
-        """Get all relationships involving a specific table.
+        """取得涉及特定資料表的所有關聯。
 
-        Args:
-            table_name: Table name (case-insensitive).
+        參數：
+            table_name: 資料表名稱（不分大小寫）。
 
-        Returns:
-            List of relationships where table is parent or child.
+        回傳：
+            該資料表作為父表或子表的關聯列表。
         """
         table_name = table_name.upper()
         with self._get_session() as session:
@@ -321,10 +321,10 @@ class SQLiteCache:
                 for r in rels
             ]
 
-    # ========== Sync Metadata Operations ==========
+    # ========== 同步中繼資料操作 ==========
 
     def get_last_sync_time(self) -> Optional[datetime]:
-        """Get the timestamp of the last successful sync."""
+        """取得上次成功同步的時間戳記。"""
         with self._get_session() as session:
             meta = session.get(SyncMetadataModel, "last_sync_time")
             if meta:
@@ -332,7 +332,7 @@ class SQLiteCache:
             return None
 
     def update_last_sync_time(self) -> None:
-        """Update the last sync timestamp to now."""
+        """將上次同步時間戳記更新為現在。"""
         with self._get_session() as session:
             meta = session.get(SyncMetadataModel, "last_sync_time")
             if meta is None:
@@ -343,7 +343,7 @@ class SQLiteCache:
             session.commit()
 
     def clear_all(self) -> None:
-        """Delete all cached data."""
+        """刪除所有快取資料。"""
         with self._get_session() as session:
             session.query(TableModel).delete()
             session.query(EnumModel).delete()
@@ -352,7 +352,7 @@ class SQLiteCache:
             session.commit()
 
     def get_stats(self) -> dict:
-        """Get statistics about cached data."""
+        """取得快取資料的統計資訊。"""
         with self._get_session() as session:
             return {
                 "tables": session.query(TableModel).count(),
